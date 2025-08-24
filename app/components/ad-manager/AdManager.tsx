@@ -40,11 +40,32 @@ const AdManager: React.FC = () => {
   const handleNext = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
   
-  // Final submission handler
-  const handleSubmit = () => {
-    console.log("FORM SUBMITTED:", formData);
-    // In a real application, this is where you would send the data to the Facebook Ads API
-    alert("Campaign submitted successfully! Check the browser console to see the final data object.");
+  // UPDATED: This function now sends all form data to your backend API endpoint
+  const handleSubmit = async () => {
+    console.log("Submitting complete form data to backend:", formData);
+
+    try {
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        alert(`Error from backend: ${result.error}`);
+      } else {
+        // Display the mock success message from the backend
+        alert(result.message);
+        console.log("Success response from backend:", result);
+      }
+    } catch (error) {
+      console.error("Failed to submit form:", error);
+      alert("An error occurred while sending data to the backend.");
+    }
   };
 
   // Helper function to render the current step's component
@@ -72,7 +93,8 @@ const AdManager: React.FC = () => {
       </CardHeader>
       <CardContent className="flex flex-col md:flex-row gap-8 md:gap-12">
         <div className="w-full md:w-1/3 lg:w-1/4">
-          <VerticalStepper currentStep={step} />
+          {/* THE ONLY CHANGE IS HERE: We pass the setStep function */}
+          <VerticalStepper currentStep={step} setStep={setStep} />
         </div>
         <div className="flex-1 min-h-[450px]">
           {renderStepContent()}
