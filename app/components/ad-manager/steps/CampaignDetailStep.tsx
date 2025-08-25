@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -5,51 +7,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup } from "@/components/ui/radio-group";
 import ImageUploader from "../ui/ImageUploader";
 import CustomRadioCard from "../ui/CustomRadioCard";
-
-// Define the shape of the form data for this step
-interface FormData {
-  campaignDetail: {
-    image: File | null;
-    name: string;
-    description: string;
-    goal: string;
-  };
-}
+import { CampaignFormData } from "../AdManager"; // Import the main form data type
 
 interface CampaignDetailStepProps {
-  formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: CampaignFormData;
+  setFormData: React.Dispatch<React.SetStateAction<CampaignFormData>>;
 }
 
-// Data for the goals section
 const goals = [
-  {
-    id: "goal-coupon",
-    value: "coupon",
-    title: "Offer a coupon",
-    description:
-      "Drive sales and expand your customer base with special discounts on Facebook.",
-  },
-  {
-    id: "goal-update",
-    value: "update",
-    title: "Send a Quick Update",
-    description:
-      "Share business updates, new products, or sale announcements to your followers.",
-  },
-  {
-    id: "goal-event",
-    value: "event",
-    title: "Send an event invitation",
-    description: "Notify customers of special events, pop-ups, and more with a simple template.",
-  },
+  { id: "goal-coupon", value: "coupon", title: "Offer a coupon", description: "Drive sales and expand your customer base with special discounts." },
+  { id: "goal-update", value: "update", title: "Send a Quick Update", description: "Share business updates, new products, or sale announcements." },
+  { id: "goal-event", value: "event", title: "Send an event invitation", description: "Notify customers of special events, pop-ups, and more." },
 ];
 
 const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFormData }) => {
-  
-  // A generic handler to update any field within the 'campaignDetail' object
-  const handleDetailChange = (field: keyof FormData["campaignDetail"], value: string | File | null) => {
-    setFormData((prev: any) => ({
+  const handleDetailChange = (field: keyof CampaignFormData["campaignDetail"], value: string | File | null) => {
+    setFormData((prev: CampaignFormData) => ({
       ...prev,
       campaignDetail: {
         ...prev.campaignDetail,
@@ -60,13 +33,10 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300">
-      {/* Image Uploader Section */}
       <div className="space-y-2">
         <Label htmlFor="ad-image" className="font-semibold">Upload Image*</Label>
         <ImageUploader onFileChange={(file) => handleDetailChange("image", file)} />
       </div>
-
-      {/* Name Section */}
       <div className="space-y-2">
         <Label htmlFor="ad-name" className="font-semibold">Name*</Label>
         <Input
@@ -76,8 +46,6 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
           onChange={(e) => handleDetailChange("name", e.target.value)}
         />
       </div>
-
-      {/* Description Section */}
       <div className="space-y-2">
         <Label htmlFor="ad-description" className="font-semibold">Description*</Label>
         <Textarea
@@ -87,8 +55,6 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
           onChange={(e) => handleDetailChange("description", e.target.value)}
         />
       </div>
-
-      {/* Goals Section */}
       <div className="space-y-4">
         <h3 className="font-semibold text-gray-800">Goals</h3>
         <RadioGroup

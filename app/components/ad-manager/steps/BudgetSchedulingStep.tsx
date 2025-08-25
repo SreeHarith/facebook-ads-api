@@ -1,38 +1,25 @@
+"use client";
+
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { DatePicker } from "../ui/DatePicker"; // Import our new component
-
-// Define the shape of the form data for this step
-interface FormData {
-  budget: {
-    startDate?: Date | undefined; 
-    endDate?: Date | undefined;   
-    dailyBudget: string;
-    totalBudget: string;
-  };
-}
+import { DatePicker } from "../ui/DatePicker";
+import { CampaignFormData } from "../AdManager"; // Import the main form data type
 
 interface BudgetSchedulingStepProps {
-  formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: CampaignFormData;
+  setFormData: React.Dispatch<React.SetStateAction<CampaignFormData>>;
 }
 
 const BudgetSchedulingStep: React.FC<BudgetSchedulingStepProps> = ({ formData, setFormData }) => {
-  // Generic handler for budget and schedule changes
-  const handleBudgetChange = (field: keyof FormData["budget"], value: string | Date | undefined) => {
-    setFormData((prev: any) => ({
+  const handleBudgetChange = (field: keyof CampaignFormData["budget"], value: string | Date | undefined) => {
+    setFormData((prev: CampaignFormData) => ({
       ...prev,
-      budget: {
-        ...prev.budget,
-        [field]: value,
-      },
+      budget: { ...prev.budget, [field]: value },
     }));
   };
 
-  // --- Summary Calculations ---
-  // These values can be dynamic, but are hard-coded based on the screenshot
   const creativeDesignCost = 500;
   const tax = 0;
   const totalBudget = parseFloat(formData.budget.totalBudget) || 0;
@@ -40,51 +27,26 @@ const BudgetSchedulingStep: React.FC<BudgetSchedulingStepProps> = ({ formData, s
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300">
-      {/* Date Pickers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label className="font-semibold">Start Date</Label>
-          <DatePicker
-            date={formData.budget.startDate}
-            setDate={(date) => handleBudgetChange("startDate", date)}
-            placeholder="Select a start date"
-          />
+          <DatePicker date={formData.budget.startDate} setDate={(date) => handleBudgetChange("startDate", date)} placeholder="Select a start date" />
         </div>
         <div className="space-y-2">
           <Label className="font-semibold">End Date</Label>
-          <DatePicker
-            date={formData.budget.endDate}
-            setDate={(date) => handleBudgetChange("endDate", date)}
-            placeholder="Select an end date"
-          />
+          <DatePicker date={formData.budget.endDate} setDate={(date) => handleBudgetChange("endDate", date)} placeholder="Select an end date" />
         </div>
       </div>
-
-      {/* Budget Inputs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="daily-budget" className="font-semibold">Daily Budget</Label>
-          <Input
-            id="daily-budget"
-            type="number"
-            placeholder="$ 100"
-            value={formData.budget.dailyBudget}
-            onChange={(e) => handleBudgetChange("dailyBudget", e.target.value)}
-          />
+          <Input id="daily-budget" type="number" placeholder="$ 100" value={formData.budget.dailyBudget} onChange={(e) => handleBudgetChange("dailyBudget", e.target.value)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="total-budget" className="font-semibold">Total Budget</Label>
-          <Input
-            id="total-budget"
-            type="number"
-            placeholder="$ 3000"
-            value={formData.budget.totalBudget}
-            onChange={(e) => handleBudgetChange("totalBudget", e.target.value)}
-          />
+          <Input id="total-budget" type="number" placeholder="$ 3000" value={formData.budget.totalBudget} onChange={(e) => handleBudgetChange("totalBudget", e.target.value)} />
         </div>
       </div>
-
-      {/* Summary Box */}
       <div className="space-y-4 rounded-lg border bg-slate-50 p-6 mt-8">
         <div className="space-y-2">
           <SummaryRow label="Creative Design" amount={creativeDesignCost} />
@@ -101,7 +63,6 @@ const BudgetSchedulingStep: React.FC<BudgetSchedulingStepProps> = ({ formData, s
   );
 };
 
-// A small helper component to avoid repetition in the summary box
 const SummaryRow = ({ label, amount, isBold = false }: { label: string; amount: number; isBold?: boolean }) => (
   <div className={`flex justify-between items-center ${isBold ? "font-bold text-gray-800" : "text-gray-600"}`}>
     <p>{label}</p>

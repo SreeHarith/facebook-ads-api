@@ -1,31 +1,27 @@
+"use client";
+
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-interface FormData {
-  channel: {
-    facebook: boolean;
-    instagram: boolean;
-  };
-  type: "image" | "video"; // CORRECT: Expects lowercase
-}
+import { CampaignFormData } from "../AdManager"; // Import the main form data type
 
 interface ChannelTypeStepProps {
-  formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: CampaignFormData;
+  // Use the specific CampaignFormData type instead of 'any'
+  setFormData: React.Dispatch<React.SetStateAction<CampaignFormData>>;
 }
 
 const ChannelTypeStep: React.FC<ChannelTypeStepProps> = ({ formData, setFormData }) => {
-  
   const handleChannelChange = (channel: "facebook" | "instagram", checked: boolean) => {
     const { facebook, instagram } = formData.channel;
-    
+
     if (!checked && ((channel === "facebook" && !instagram) || (channel === "instagram" && !facebook))) {
       return;
     }
 
-    setFormData((prev: any) => ({
+    // Use the specific type for the 'prev' state
+    setFormData((prev: CampaignFormData) => ({
       ...prev,
       channel: { ...prev.channel, [channel]: checked },
     }));
@@ -33,7 +29,8 @@ const ChannelTypeStep: React.FC<ChannelTypeStepProps> = ({ formData, setFormData
 
   const handleTypeChange = (value: "image" | "video") => {
     if (value) {
-      setFormData((prev: any) => ({
+      // Use the specific type for the 'prev' state
+      setFormData((prev: CampaignFormData) => ({
         ...prev,
         type: value,
       }));
@@ -76,14 +73,12 @@ const ChannelTypeStep: React.FC<ChannelTypeStepProps> = ({ formData, setFormData
           className="flex flex-col space-y-3"
         >
           <div className="flex items-center space-x-3">
-            {/* CORRECT: Uses lowercase value */}
             <RadioGroupItem value="image" id="image" />
             <Label htmlFor="image" className="text-sm font-medium">
               Image
             </Label>
           </div>
           <div className="flex items-center space-x-3">
-            {/* CORRECT: Uses lowercase value */}
             <RadioGroupItem value="video" id="video" />
             <Label htmlFor="video" className="text-sm font-medium">
               Video
