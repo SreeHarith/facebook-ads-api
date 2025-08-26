@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useCampaignStore } from "@/lib/store";
 
@@ -19,7 +19,7 @@ export interface CampaignFormData {
   type: "image" | "video";
   campaignDetail: { image: File | null; name: string; description: string; goal: string };
   targetAudience: { gender: string; minAge: string; maxAge: string; venue: string; locationRange: number };
-  budget: { startDate?: Date; endDate?: Date; dailyBudget: string; totalBudget: string };
+  budget: { startDate?: Date; endDate?: Date; minimumBudget: number; totalBudget: string };
   payment: { selectedCard: string };
 }
 
@@ -32,17 +32,40 @@ const TOTAL_STEPS = 5;
 
 const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
   const addCampaign = useCampaignStore((state) => state.addCampaign);
-
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<CampaignFormData>({
-    // Set initial default values for the form
     channel: { facebook: true, instagram: false },
     type: "image",
     campaignDetail: { image: null, name: "", description: "", goal: "coupon" },
-    targetAudience: { gender: "all", minAge: "18", maxAge: "65", venue: "online-store", locationRange: 20 },
-    budget: { startDate: new Date(), endDate: undefined, dailyBudget: "100", totalBudget: "3000" },
+    targetAudience: { gender: "all", minAge: "18", maxAge: "65", venue: "", locationRange: 20 },
+    // --- UPDATED LINE ---
+    budget: { startDate: undefined, endDate: undefined, minimumBudget: 500, totalBudget: "0" },
     payment: { selectedCard: "visa-156" },
   });
+
+  useEffect(() => {
+    const { startDate, endDate, minimumBudget } = formData.budget;
+
+    if (startDate && endDate && endDate >= startDate) {
+      // Normalize dates to the beginning of the day to count full days
+      const start = new Date(startDate.setHours(0, 0, 0, 0));
+      const end = new Date(endDate.setHours(0, 0, 0, 0));
+
+      // Calculate the number of days, inclusive
+      const dayCount = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) + 1;
+      const newTotal = dayCount * minimumBudget;
+
+      // Only update state if the calculated value is different
+      if (newTotal.toString() !== formData.budget.totalBudget) {
+        setFormData(prev => ({
+          ...prev,
+          budget: { ...prev.budget, totalBudget: newTotal.toString() }
+        }));
+      }
+    }
+  }, [formData.budget.startDate, formData.budget.endDate, formData.budget.minimumBudget, formData.budget.totalBudget]);
+
+
 
   // Navigation handlers
   const handleNext = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));

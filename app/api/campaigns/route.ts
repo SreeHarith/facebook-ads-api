@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       status: "PAUSED",
       billing_event: "IMPRESSIONS",
       optimization_goal: "REACH",
-      daily_budget: parseInt(formData.budget.dailyBudget) * 100,
+      daily_budget: formData.budget.minimumBudget * 100,
       targeting: {
         geo_locations: { countries: ["US"] },
         age_min: formData.targetAudience.minAge,

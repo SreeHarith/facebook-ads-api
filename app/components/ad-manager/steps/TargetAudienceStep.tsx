@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { CampaignFormData } from "../AdManager"; // Import the main form data type
+import { CampaignFormData } from "../AdManager";
 
 interface TargetAudienceStepProps {
   formData: CampaignFormData;
@@ -52,6 +52,7 @@ const TargetAudienceStep: React.FC<TargetAudienceStepProps> = ({ formData, setFo
           </SelectContent>
         </Select>
       </div>
+
       <div className="space-y-2">
         <Label className="font-semibold">Age Range</Label>
         <div className="flex items-center gap-4">
@@ -59,17 +60,18 @@ const TargetAudienceStep: React.FC<TargetAudienceStepProps> = ({ formData, setFo
           <Input type="number" placeholder="Max age" value={formData.targetAudience.maxAge} onChange={(e) => handleAudienceChange("maxAge", e.target.value)} min="13" max="100" />
         </div>
       </div>
+
+      {/* --- UPDATED SECTION --- */}
       <div className="space-y-2">
-        <Label className="font-semibold">Venue</Label>
-        <Select onValueChange={(value) => handleAudienceChange("venue", value)} value={formData.targetAudience.venue}>
-          <SelectTrigger><SelectValue placeholder="Select a venue" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="main-store">Main Store (Chennai)</SelectItem>
-            <SelectItem value="online-store">Online Store</SelectItem>
-            <SelectItem value="anna-nagar-branch">Anna Nagar Branch</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label htmlFor="location-input" className="font-semibold">Venue</Label>
+        <Input
+          id="location-input"
+          placeholder="e.g., Coimbatore, Tamil Nadu"
+          value={formData.targetAudience.venue} // This still uses the 'venue' key in the state
+          onChange={(e) => handleAudienceChange("venue", e.target.value)}
+        />
       </div>
+
       <div className="space-y-4 pt-2">
         <div className="flex justify-between items-center">
           <Label htmlFor="location-range-input" className="font-semibold">Location Range</Label>
