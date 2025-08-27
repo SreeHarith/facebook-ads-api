@@ -14,7 +14,6 @@ import TargetAudienceStep from "./steps/TargetAudienceStep";
 import BudgetSchedulingStep from "./steps/BudgetSchedulingStep";
 import PaymentStep from "./steps/PaymentStep";
 
-// The data structure for the form
 export interface CampaignFormData {
   channel: { facebook: boolean; instagram: boolean };
   type: "image" | "video";
@@ -24,13 +23,11 @@ export interface CampaignFormData {
   payment: { selectedCard: string };
 }
 
-// ADDED: The missing interface for a Facebook Page
 export interface FacebookPage {
   id: string;
   name: string;
 }
 
-// Helper function to convert a File to a Base64 string
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -59,32 +56,31 @@ const AdManager: React.FC = () => {
   });
 
   useEffect(() => {
-    const { startDate, endDate, minimumBudget } = formData.budget;
+    const { startDate, endDate, minimumBudget, totalBudget } = formData.budget;
     if (startDate && endDate && endDate >= startDate) {
       const start = new Date(startDate.setHours(0, 0, 0, 0));
       const end = new Date(endDate.setHours(0, 0, 0, 0));
       const dayCount = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) + 1;
       const newTotal = dayCount * minimumBudget;
-      if (newTotal.toString() !== formData.budget.totalBudget) {
+      if (newTotal.toString() !== totalBudget) {
         setFormData(prev => ({
           ...prev,
           budget: { ...prev.budget, totalBudget: newTotal.toString() }
         }));
       }
     } else {
-      if (formData.budget.totalBudget !== "0") {
+      if (totalBudget !== "0") {
         setFormData(prev => ({
             ...prev,
             budget: { ...prev.budget, totalBudget: "0" }
         }));
       }
     }
-  }, [formData.budget.startDate, formData.budget.endDate, formData.budget.minimumBudget, formData.budget.totalBudget]);
+  }, [formData.budget]); // CORRECTED: Simplified the dependency array
 
   const handleNext = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
   
-  // THIS IS THE CORRECT, FULLY FUNCTIONAL SUBMIT HANDLER
   const handleSubmit = async () => {
     if (!formData.campaignDetail.image) {
       alert("Please upload an image for the ad.");
@@ -96,10 +92,7 @@ const AdManager: React.FC = () => {
       const imageBase64 = await fileToBase64(formData.campaignDetail.image);
       const payload = {
         ...formData,
-        campaignDetail: {
-          ...formData.campaignDetail,
-          image: imageBase64,
-        },
+        campaignDetail: { ...formData.campaignDetail, image: imageBase64 },
       };
 
       const response = await fetch('/api/campaigns', {
@@ -109,17 +102,19 @@ const AdManager: React.FC = () => {
       });
 
       const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || "An unknown API error occurred");
-      }
+      if (!response.ok) throw new Error(result.error || "An unknown API error occurred");
 
       addCampaign(formData);
       setIsSubmitted(true);
       alert(result.message || "Campaign Submitted Successfully!");
 
-    } catch (error: any) {
-      console.error("Submission Error:", error);
-      alert(`Error: ${error.message}`);
+    } catch (error) { // CORRECTED: Use 'unknown' type for better safety
+      let errorMessage = "An unknown error occurred";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      console.error("Submission Error:", errorMessage);
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -127,18 +122,12 @@ const AdManager: React.FC = () => {
 
   const renderStepContent = () => {
     switch (step) {
-      case 1:
-        return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
-      case 2:
-        return <CampaignDetailStep formData={formData} setFormData={setFormData} />;
-      case 3:
-        return <TargetAudienceStep formData={formData} setFormData={setFormData} />;
-      case 4:
-        return <BudgetSchedulingStep formData={formData} setFormData={setFormData} />;
-      case 5:
-        return <PaymentStep formData={formData} setFormData={setFormData} />;
-      default:
-        return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
+      case 1: return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
+      case 2: return <CampaignDetailStep formData={formData} setFormData={setFormData} />;
+      case 3: return <TargetAudienceStep formData={formData} setFormData={setFormData} />;
+      case 4: return <BudgetSchedulingStep formData={formData} setFormData={setFormData} />;
+      case 5: return <PaymentStep formData={formData} setFormData={setFormData} />;
+      default: return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
     }
   };
 
@@ -170,10 +159,7 @@ const AdManager: React.FC = () => {
 
       {isSubmitted && (
         <div className="w-full max-w-5xl flex justify-center mt-6">
-          <Button
-            onClick={() => router.push('/campaigns')}
-            size="lg"
-          >
+          <Button onClick={() => router.push('/campaigns')} size="lg">
             View All Campaigns
           </Button>
         </div>
