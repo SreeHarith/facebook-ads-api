@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CampaignsTable } from "@/app/components/ad-manager/table/CampaignsTable";
 import { columns } from "@/app/components/ad-manager/table/columns";
 import { useCampaignStore } from "@/lib/store";
