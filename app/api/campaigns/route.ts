@@ -1,49 +1,73 @@
 import { NextResponse } from "next/server";
-// IMPORT: The shared CampaignFormData type from your component
 import { CampaignFormData } from "@/app/components/ad-manager/AdManager";
 
-// This function handles GET requests to prevent server errors
-export async function GET() {
-  return NextResponse.json(
-    { message: "API is running. Use POST to create a campaign." },
-    { status: 200 }
-  );
-}
+// The old base64ToBlob helper function is no longer needed and has been removed.
 
-// This function handles POST requests to create a new campaign
 export async function POST(request: Request) {
   try {
-    const formData: CampaignFormData = await request.json();
-    console.log("Received form data on backend:", formData);
+    const body = await request.json();
+    const formData: Omit<CampaignFormData, 'campaignDetail'> & { campaignDetail: Omit<CampaignFormData['campaignDetail'], 'image'> & { image: string } } = body;
 
-    const accessToken = process.env.FB_ACCESS_TOKEN || "YOUR_PLACEHOLDER_TOKEN";
-    const adAccountId = process.env.FB_AD_ACCOUNT_ID || "act_YOUR_PLACEHOLDER_AD_ACCOUNT_ID";
+    const accessToken = process.env.FB_ACCESS_TOKEN;
+    const adAccountId = process.env.FB_AD_ACCOUNT_ID;
 
+    if (!accessToken || !adAccountId) {
+      throw new Error("Missing Facebook API credentials in .env.local file.");
+    }
+
+    // --- STEP 1: UPLOAD THE IMAGE ---
+    const base64Data = formData.campaignDetail.image.split(',')[1];
+    if (!base64Data) {
+      throw new Error("Invalid image data received. The base64 string is malformed.");
+    }
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    const imageFormData = new FormData();
+    const imageName = 'upload.png'; // Give the upload a consistent filename
+    imageFormData.append('source', new Blob([imageBuffer]), imageName);
+    imageFormData.append('access_token', accessToken);
+    
+    const imageResponse = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/adimages`, {
+        method: 'POST',
+        body: imageFormData,
+    });
+    const imageData = await imageResponse.json();
+    
+    // Log the full response from Facebook for debugging
+    console.log("Full Image API Response:", JSON.stringify(imageData, null, 2));
+
+    if (!imageResponse.ok) throw new Error(`API Error (Image Upload): ${imageData.error.message}`);
+    
+    let imageHash = '';
+    if (imageData.images && imageData.images[imageName] && imageData.images[imageName].hash) {
+      imageHash = imageData.images[imageName].hash;
+    } else if (imageData.images && imageData.images[0] && imageData.images[0].hash) {
+      imageHash = imageData.images[0].hash;
+    }
+
+    if (!imageHash) {
+      throw new Error("Image hash not found in API response. Check the server logs for the full response from Facebook.");
+    }
+    console.log("Step 1/3: Image uploaded successfully. Hash:", imageHash);
+
+    // --- STEP 2: CREATE THE CAMPAIGN ---
     const campaignPayload = {
       name: formData.campaignDetail.name,
       objective: "OUTCOME_TRAFFIC",
       status: "PAUSED",
       special_ad_categories: [],
-      access_token: accessToken,
     };
-
-    console.log("Payload for Campaign:", campaignPayload);
-
-    /* // Real API call for Campaign Creation
-    const campaignResponse = await fetch(
-      `https://graph.facebook.com/v19.0/${adAccountId}/campaigns`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(campaignPayload) }
-    );
+    const campaignResponse = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/campaigns?access_token=${accessToken}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(campaignPayload),
+    });
     const campaignData = await campaignResponse.json();
-    if (!campaignResponse.ok) {
-      throw new Error(`Facebook Campaign API Error: ${campaignData.error.message}`);
-    }
+    if (!campaignResponse.ok) throw new Error(`API Error (Campaign Creation): ${campaignData.error.message}`);
     const campaignId = campaignData.id;
-    */
+    console.log("Step 2/3: Campaign created successfully. ID:", campaignId);
 
-    const campaignId = "MOCK_CAMPAIGN_ID_12345";
-    console.log("Mock Campaign Created with ID:", campaignId);
-
+    // --- STEP 3: CREATE THE AD SET ---
     const adSetPayload = {
       name: `${formData.campaignDetail.name} Ad Set`,
       campaign_id: campaignId,
@@ -51,46 +75,75 @@ export async function POST(request: Request) {
       billing_event: "IMPRESSIONS",
       optimization_goal: "REACH",
       daily_budget: formData.budget.minimumBudget * 100,
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
       targeting: {
-        geo_locations: { countries: ["US"] },
+        geo_locations: {
+          countries: ['IN']
+        },
         age_min: formData.targetAudience.minAge,
         age_max: formData.targetAudience.maxAge,
       },
-      access_token: accessToken,
     };
-    
-    console.log("Payload for Ad Set:", adSetPayload);
-
-    /*
-    // Real API call for the Ad Set
-    const adSetResponse = await fetch(
-      `https://graph.facebook.com/v19.0/${adAccountId}/adsets`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(adSetPayload) }
-    );
+    const adSetResponse = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/adsets?access_token=${accessToken}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adSetPayload),
+    });
     const adSetData = await adSetResponse.json();
-    if (!adSetResponse.ok) {
-      throw new Error(`Facebook Ad Set API Error: ${adSetData.error.message}`);
-    }
+    if (!adSetResponse.ok) throw new Error(`API Error (Ad Set Creation): ${adSetData.error.message}`);
     const adSetId = adSetData.id;
+    console.log("Step 3/3: Ad Set created successfully. ID:", adSetId);
+
+    // --- STEPS 4 AND 5 ARE SKIPPED FOR NOW ---
+    /*
+    // --- STEP 4: CREATE THE AD CREATIVE ---
+    const adCreativePayload = {
+      name: `${formData.campaignDetail.name} Creative`,
+      object_story_spec: {
+        page_id: "YOUR_FACEBOOK_PAGE_ID_HERE", 
+        link_data: {
+          image_hash: imageHash,
+          link: "https://www.example.com",
+          message: formData.campaignDetail.description,
+        },
+      },
+    };
+    const adCreativeResponse = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/adcreatives?access_token=${accessToken}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adCreativePayload),
+    });
+    const adCreativeData = await adCreativeResponse.json();
+    if (!adCreativeResponse.ok) throw new Error(`API Error (Ad Creative Creation): ${adCreativeData.error.message}`);
+    const adCreativeId = adCreativeData.id;
+    console.log("Step 4/5: Ad Creative created successfully. ID:", adCreativeId);
+
+    // --- STEP 5: CREATE THE AD ---
+    const adPayload = {
+      name: `${formData.campaignDetail.name} Ad`,
+      adset_id: adSetId,
+      creative: { creative_id: adCreativeId },
+      status: "PAUSED",
+    };
+    const adResponse = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/ads?access_token=${accessToken}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adPayload),
+    });
+    const adData = await adResponse.json();
+    if (!adResponse.ok) throw new Error(`API Error (Ad Creation): ${adData.error.message}`);
+    const adId = adData.id;
+    console.log("Step 5/5: Final Ad created successfully. ID:", adId);
     */
 
-    const adSetId = "MOCK_ADSET_ID_67890";
-    console.log("Mock Ad Set Created with ID:", adSetId);
-
-    return NextResponse.json({
-        message: "Backend is ready! Mock campaign and ad set created successfully.",
+    return NextResponse.json({ 
+        message: "Partial Test Successful! Campaign and Ad Set created.",
         campaignId: campaignId,
-        adSetId: adSetId,
-      }, { status: 200 }
-    );
+        adSetId: adSetId
+    }, { status: 200 });
 
-  // CORRECTED: Use a safer type for the error object
-  } catch (error) {
-    let errorMessage = "An unknown error occurred";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-    console.error("Internal Server Error:", errorMessage);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  } catch (error: any) {
+    console.error("Full API Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

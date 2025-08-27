@@ -1,12 +1,15 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react"; // Import a loading spinner icon
 
+// The interface for the component's props
 interface FormActionsProps {
   currentStep: number;
   totalSteps: number;
   onBack: () => void;
   onNext: () => void;
   onSubmit: () => void;
+  isSubmitting: boolean; // ADDED: The new prop for the loading state
 }
 
 const FormActions: React.FC<FormActionsProps> = ({
@@ -15,41 +18,29 @@ const FormActions: React.FC<FormActionsProps> = ({
   onBack,
   onNext,
   onSubmit,
+  isSubmitting, // Use the new prop
 }) => {
-  const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === totalSteps;
-  const isPenultimateStep = currentStep === totalSteps - 1; // The step before Payment
-
-  // Dynamically set the text for the primary action button
-  let nextButtonText = "Next";
-  if (isPenultimateStep) {
-    nextButtonText = "Choose Payment";
-  } else if (isLastStep) {
-    nextButtonText = "Pay & Submit Campaign";
-  }
-
-  // Determine the action when the primary button is clicked
-  const handleNextClick = () => {
-    if (isLastStep) {
-      onSubmit(); // On the last step, submit the form
-    } else {
-      onNext(); // Otherwise, go to the next step
-    }
-  };
+  const nextButtonText = isLastStep ? "Pay & Submit Campaign" : "Next";
 
   return (
-    <div className="w-full flex justify-end items-center gap-4 pt-4 border-t">
-      <Button variant="ghost" className="text-gray-600">Cancel</Button>
+    <div className="w-full flex justify-end items-center gap-4">
+      <Button variant="ghost" className="text-gray-600" disabled={isSubmitting}>
+        Cancel
+      </Button>
       
-      {/* Only show the 'Back' button if it's not the first step */}
-      {!isFirstStep && (
-        <Button variant="ghost" onClick={onBack}>
+      {currentStep > 1 && (
+        <Button variant="ghost" onClick={onBack} disabled={isSubmitting}>
           Back
         </Button>
       )}
 
-      <Button onClick={handleNextClick} className="bg-violet-600 hover:bg-violet-700">
-        {nextButtonText}
+      <Button onClick={isLastStep ? onSubmit : onNext} disabled={isSubmitting}>
+        {/* This part shows the spinner when submitting on the last step */}
+        {isSubmitting && isLastStep ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : null}
+        {isSubmitting && isLastStep ? "Submitting..." : nextButtonText}
       </Button>
     </div>
   );
