@@ -142,8 +142,13 @@ export async function POST(request: Request) {
         adSetId: adSetId
     }, { status: 200 });
 
-  } catch (error: any) {
-    console.error("Full API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // THIS IS THE CORRECTED CATCH BLOCK
+  } catch (error) {
+    let errorMessage = "An unknown error occurred";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    console.error("Full API Error:", errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
