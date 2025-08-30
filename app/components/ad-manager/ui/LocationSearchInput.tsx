@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { X, MapPin } from "lucide-react";
 
 // Fix for default Leaflet icon issue
-// @ts-expect-error
+// @ts-expect-error leaflet-default-icon-fix
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
