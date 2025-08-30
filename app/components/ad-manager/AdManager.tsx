@@ -13,7 +13,7 @@ import CampaignDetailStep from "./steps/CampaignDetailStep";
 import TargetAudienceStep from "./steps/TargetAudienceStep";
 import BudgetSchedulingStep from "./steps/BudgetSchedulingStep";
 import PaymentStep from "./steps/PaymentStep";
-import { Location } from "./ui/LocationSearchInput"; // Import the Location type
+import { Location } from "./ui/LocationSearchInput";
 
 // The data structure for the form
 export interface CampaignFormData {
@@ -24,7 +24,7 @@ export interface CampaignFormData {
     gender: string; 
     minAge: string; 
     maxAge: string; 
-    locations: Location[]; // Use the Location[] type
+    locations: Location[];
     locationRange: number; 
   };
   budget: { startDate?: Date; endDate?: Date; minimumBudget: number; totalBudget: string };
@@ -32,6 +32,11 @@ export interface CampaignFormData {
 }
 
 export type { Location };
+
+// --- CHANGE 1: Define an interface for the component's props ---
+interface AdManagerProps {
+  onSuccess: () => void;
+}
 
 // Helper function to convert a File to a Base64 string
 const fileToBase64 = (file: File): Promise<string> => {
@@ -45,7 +50,8 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 const TOTAL_STEPS = 5;
 
-const AdManager: React.FC = () => {
+// --- CHANGE 2: Update the component to accept the 'onSuccess' prop ---
+const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
   const router = useRouter();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,7 +62,6 @@ const AdManager: React.FC = () => {
     channel: { facebook: true, instagram: false },
     type: "image",
     campaignDetail: { image: null, name: "", description: "", goal: "OUTCOME_TRAFFIC", pageId: "" },
-    // CORRECTED: Ensure 'locations' is initialized as an empty array
     targetAudience: { gender: "all", minAge: "18", maxAge: "65", locations: [], locationRange: 20 },
     budget: { startDate: undefined, endDate: undefined, minimumBudget: 500, totalBudget: "0" },
     payment: { selectedCard: "visa-156" },
@@ -107,6 +112,8 @@ const AdManager: React.FC = () => {
       addCampaign(formData);
       setIsSubmitted(true);
       alert(result.message || "Campaign Submitted Successfully!");
+      // --- CHANGE 3: Call the onSuccess function after everything succeeds ---
+      onSuccess();
 
     } catch (error) {
       let errorMessage = "An unknown error occurred";
