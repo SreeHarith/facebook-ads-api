@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useCampaignStore } from "@/lib/store";
 
 import VerticalStepper from "./VerticalStepper";
@@ -11,20 +13,25 @@ import CampaignDetailStep from "./steps/CampaignDetailStep";
 import TargetAudienceStep from "./steps/TargetAudienceStep";
 import BudgetSchedulingStep from "./steps/BudgetSchedulingStep";
 import PaymentStep from "./steps/PaymentStep";
+import { Location } from "./ui/LocationSearchInput"; // Import the Location type
 
+// The data structure for the form
 export interface CampaignFormData {
   channel: { facebook: boolean; instagram: boolean };
   type: "image" | "video";
-  campaignDetail: { image: File | null; name: string; description: string; goal: string; };
-  targetAudience: { gender: string; minAge: string; maxAge: string; venue: string; locationRange: number };
+  campaignDetail: { image: File | null; name: string; description: string; goal: string; pageId: string; };
+  targetAudience: { 
+    gender: string; 
+    minAge: string; 
+    maxAge: string; 
+    locations: Location[]; // Use the Location[] type
+    locationRange: number; 
+  };
   budget: { startDate?: Date; endDate?: Date; minimumBudget: number; totalBudget: string };
   payment: { selectedCard: string };
 }
 
-export interface FacebookPage {
-  id: string;
-  name: string;
-}
+export type { Location };
 
 // Helper function to convert a File to a Base64 string
 const fileToBase64 = (file: File): Promise<string> => {
@@ -36,14 +43,11 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-// ADDED: A prop to handle the successful submission event
-interface AdManagerProps {
-  onSuccess: () => void;
-}
-
 const TOTAL_STEPS = 5;
 
-const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
+const AdManager: React.FC = () => {
+  const router = useRouter();
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const addCampaign = useCampaignStore((state) => state.addCampaign);
 
@@ -51,8 +55,9 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState<CampaignFormData>({
     channel: { facebook: true, instagram: false },
     type: "image",
-    campaignDetail: { image: null, name: "", description: "", goal: "OUTCOME_TRAFFIC" },
-    targetAudience: { gender: "all", minAge: "18", maxAge: "65", venue: "", locationRange: 20 },
+    campaignDetail: { image: null, name: "", description: "", goal: "OUTCOME_TRAFFIC", pageId: "" },
+    // CORRECTED: Ensure 'locations' is initialized as an empty array
+    targetAudience: { gender: "all", minAge: "18", maxAge: "65", locations: [], locationRange: 20 },
     budget: { startDate: undefined, endDate: undefined, minimumBudget: 500, totalBudget: "0" },
     payment: { selectedCard: "visa-156" },
   });
@@ -68,13 +73,6 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
         setFormData(prev => ({
           ...prev,
           budget: { ...prev.budget, totalBudget: newTotal.toString() }
-        }));
-      }
-    } else {
-      if (formData.budget.totalBudget !== "0") {
-        setFormData(prev => ({
-            ...prev,
-            budget: { ...prev.budget, totalBudget: "0" }
         }));
       }
     }
@@ -94,10 +92,7 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
       const imageBase64 = await fileToBase64(formData.campaignDetail.image);
       const payload = {
         ...formData,
-        campaignDetail: {
-          ...formData.campaignDetail,
-          image: imageBase64,
-        },
+        campaignDetail: { ...formData.campaignDetail, image: imageBase64 },
       };
 
       const response = await fetch('/api/campaigns', {
@@ -107,20 +102,17 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
       });
 
       const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || "An unknown API error occurred");
-      }
+      if (!response.ok) throw new Error(result.error || "An unknown API error occurred");
 
       addCampaign(formData);
+      setIsSubmitted(true);
       alert(result.message || "Campaign Submitted Successfully!");
-      onSuccess(); // Call the onSuccess function to switch tabs
 
     } catch (error) {
       let errorMessage = "An unknown error occurred";
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      console.error("Submission Error:", errorMessage);
       alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
@@ -129,45 +121,49 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
 
   const renderStepContent = () => {
     switch (step) {
-      case 1:
-        return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
-      case 2:
-        return <CampaignDetailStep formData={formData} setFormData={setFormData} />;
-      case 3:
-        return <TargetAudienceStep formData={formData} setFormData={setFormData} />;
-      case 4:
-        return <BudgetSchedulingStep formData={formData} setFormData={setFormData} />;
-      case 5:
-        return <PaymentStep formData={formData} setFormData={setFormData} />;
-      default:
-        return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
+      case 1: return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
+      case 2: return <CampaignDetailStep formData={formData} setFormData={setFormData} />;
+      case 3: return <TargetAudienceStep formData={formData} setFormData={setFormData} />;
+      case 4: return <BudgetSchedulingStep formData={formData} setFormData={setFormData} />;
+      case 5: return <PaymentStep formData={formData} setFormData={setFormData} />;
+      default: return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
     }
   };
 
   return (
-    <Card className="w-full max-w-5xl shadow-lg">
-      <CardHeader>
-        <CardTitle>Ad manager</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col md:flex-row gap-8 md:gap-12">
-        <div className="w-full md:w-1-3 lg:w-1/4">
-          <VerticalStepper currentStep={step} setStep={setStep} />
+    <>
+      <Card className="w-full max-w-5xl shadow-lg">
+        <CardHeader>
+          <CardTitle>Ad manager</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col md:flex-row gap-8 md:gap-12">
+          <div className="w-full md:w-1/3 lg:w-1/4">
+            <VerticalStepper currentStep={step} setStep={setStep} />
+          </div>
+          <div className="flex-1 min-h-[450px]">
+            {renderStepContent()}
+          </div>
+        </CardContent>
+        <CardFooter>
+          <FormActions
+            currentStep={step}
+            totalSteps={TOTAL_STEPS}
+            onBack={handleBack}
+            onNext={handleNext}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
+        </CardFooter>
+      </Card>
+
+      {isSubmitted && (
+        <div className="w-full max-w-5xl flex justify-center mt-6">
+          <Button onClick={() => router.push('/campaigns')} size="lg">
+            View All Campaigns
+          </Button>
         </div>
-        <div className="flex-1 min-h-[450px]">
-          {renderStepContent()}
-        </div>
-      </CardContent>
-      <CardFooter>
-        <FormActions
-          currentStep={step}
-          totalSteps={TOTAL_STEPS}
-          onBack={handleBack}
-          onNext={handleNext}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-        />
-      </CardFooter>
-    </Card>
+      )}
+    </>
   );
 };
 

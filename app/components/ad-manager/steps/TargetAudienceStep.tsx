@@ -1,11 +1,17 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { CampaignFormData } from "../AdManager";
+import { CampaignFormData, Location } from "../AdManager";
+
+const LocationSearchInput = dynamic(
+  () => import("../ui/LocationSearchInput").then((mod) => mod.LocationSearchInput),
+  { ssr: false, loading: () => <p>Loading map...</p> }
+);
 
 interface TargetAudienceStepProps {
   formData: CampaignFormData;
@@ -14,26 +20,21 @@ interface TargetAudienceStepProps {
 
 const TargetAudienceStep: React.FC<TargetAudienceStepProps> = ({ formData, setFormData }) => {
   const handleAudienceChange = (field: keyof CampaignFormData["targetAudience"], value: string | number) => {
-    setFormData((prev: CampaignFormData) => ({
+    setFormData((prev) => ({
       ...prev,
       targetAudience: { ...prev.targetAudience, [field]: value },
+    }));
+  };
+  
+  const setLocations = (locations: Location[]) => {
+     setFormData((prev) => ({
+      ...prev,
+      targetAudience: { ...prev.targetAudience, locations: locations },
     }));
   };
 
   const handleSliderChange = (value: number[]) => {
     handleAudienceChange("locationRange", value[0]);
-  };
-
-  const handleLocationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value === "") {
-      handleAudienceChange("locationRange", 0);
-      return;
-    }
-    const numericValue = parseInt(value, 10);
-    if (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 100) {
-      handleAudienceChange("locationRange", numericValue);
-    }
   };
 
   return (
@@ -44,7 +45,9 @@ const TargetAudienceStep: React.FC<TargetAudienceStepProps> = ({ formData, setFo
           onValueChange={(value) => handleAudienceChange("gender", value)}
           value={formData.targetAudience.gender}
         >
-          <SelectTrigger><SelectValue placeholder="Select a Gender" /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a Gender" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="male">Male</SelectItem>
@@ -56,31 +59,43 @@ const TargetAudienceStep: React.FC<TargetAudienceStepProps> = ({ formData, setFo
       <div className="space-y-2">
         <Label className="font-semibold">Age Range</Label>
         <div className="flex items-center gap-4">
-          <Input type="number" placeholder="Min age" value={formData.targetAudience.minAge} onChange={(e) => handleAudienceChange("minAge", e.target.value)} min="13" max="100" />
-          <Input type="number" placeholder="Max age" value={formData.targetAudience.maxAge} onChange={(e) => handleAudienceChange("maxAge", e.target.value)} min="13" max="100" />
+          <Input
+            type="number"
+            placeholder="Min age"
+            value={formData.targetAudience.minAge}
+            onChange={(e) => handleAudienceChange("minAge", e.target.value)}
+            min="13"
+            max="100"
+          />
+          <Input
+            type="number"
+            placeholder="Max age"
+            value={formData.targetAudience.maxAge}
+            onChange={(e) => handleAudienceChange("maxAge", e.target.value)}
+            min="13"
+            max="100"
+          />
         </div>
       </div>
-
-      {/* --- UPDATED SECTION --- */}
+      
       <div className="space-y-2">
-        <Label htmlFor="location-input" className="font-semibold">Venue</Label>
-        <Input
-          id="location-input"
-          placeholder="e.g., Coimbatore, Tamil Nadu"
-          value={formData.targetAudience.venue} // This still uses the 'venue' key in the state
-          onChange={(e) => handleAudienceChange("venue", e.target.value)}
-        />
+        <Label className="font-semibold">Location</Label>
+        <LocationSearchInput locations={formData.targetAudience.locations} setLocations={setLocations} />
       </div>
 
       <div className="space-y-4 pt-2">
         <div className="flex justify-between items-center">
-          <Label htmlFor="location-range-input" className="font-semibold">Location Range</Label>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-500">KM</span>
-            <Input id="location-range-input" type="number" className="w-20 h-9 text-center" value={formData.targetAudience.locationRange} onChange={handleLocationInputChange} min="0" max="100" />
-          </div>
+          <Label className="font-semibold">Location Range</Label>
+          <span className="text-sm font-medium text-gray-700">
+            KM | {formData.targetAudience.locationRange}
+          </span>
         </div>
-        <Slider value={[formData.targetAudience.locationRange]} max={100} step={1} onValueChange={handleSliderChange} aria-label="Location Range Slider" />
+        <Slider
+          value={[formData.targetAudience.locationRange]}
+          max={100}
+          step={1}
+          onValueChange={handleSliderChange}
+        />
       </div>
     </div>
   );

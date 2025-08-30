@@ -8,16 +8,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import ImageUploader from "../ui/ImageUploader";
-import { CampaignFormData, FacebookPage } from "../AdManager";
+import { CampaignFormData } from "../AdManager";
 
+// UPDATED: The props for pages and loading state have been removed.
 interface CampaignDetailStepProps {
   formData: CampaignFormData;
   setFormData: React.Dispatch<React.SetStateAction<CampaignFormData>>;
-  // These props are no longer needed but kept for potential future use
-  pages?: FacebookPage[];
-  isLoadingPages?: boolean;
 }
 
+// Data for the "Goals" radio cards
 const goals = [
   {
     id: "goal-traffic",
@@ -37,6 +36,24 @@ const goals = [
     title: "Leads",
     description: "Collect leads for your business or brand.",
   },
+  {
+    id: "goal-sales",
+    value: "OUTCOME_SALES",
+    title: "Sales",
+    description: "Find people likely to purchase your product or service.",
+  },
+  {
+    id: "goal-engagement",
+    value: "OUTCOME_ENGAGEMENT",
+    title: "Engagement",
+    description: "Get more messages, video views, post engagements, or Page likes.",
+  },
+  {
+    id: "goal-app-promotion",
+    value: "OUTCOME_APP_PROMOTION",
+    title: "App Promotion",
+    description: "Find new people to install your app and continue using it.",
+  },
 ];
 
 const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFormData }) => {
@@ -52,7 +69,7 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300">
-      {/* The Facebook Page dropdown has been removed from here */}
+      {/* The Facebook Page dropdown has been removed from this section */}
 
       <div className="space-y-2">
         <Label htmlFor="ad-image" className="font-semibold">Upload Image*</Label>
