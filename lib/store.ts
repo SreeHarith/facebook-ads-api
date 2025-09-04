@@ -6,17 +6,19 @@ import { CampaignFormData } from '@/app/components/ad-manager/AdManager';
 // Define the shape of our store
 interface CampaignState {
   campaigns: Campaign[];
-  addCampaign: (formData: CampaignFormData) => void;
+  // --- CHANGE 1: Update the function to accept the facebookCampaignId ---
+  addCampaign: (formData: CampaignFormData, facebookCampaignId: string) => void;
 }
 
 export const useCampaignStore = create<CampaignState>((set) => ({
   // The list of campaigns now starts as an empty array
   campaigns: [], 
   
-  // This function adds a new campaign to the list
-  addCampaign: (formData) => {
+  // --- CHANGE 2: Implement the updated function ---
+  addCampaign: (formData, facebookCampaignId) => {
     const newCampaign: Campaign = {
       id: `CAM-${Date.now()}`,
+      facebookCampaignId: facebookCampaignId, // <-- Save the new ID here
       adName: formData.campaignDetail.name,
       goals: formData.campaignDetail.goal,
       type: formData.type,

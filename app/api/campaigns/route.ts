@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
 import { CampaignFormData } from "@/app/components/ad-manager/AdManager";
 
-// Helper function to convert a Base64 data URL into a Blob for uploading
-async function base64ToBlob(base64: string): Promise<Blob> {
-    const res = await fetch(base64);
-    const blob = await res.blob();
-    return blob;
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -20,8 +13,8 @@ export async function POST(request: Request) {
     if (!accessToken || !adAccountId || !pageId) {
       throw new Error("Missing Facebook API credentials in .env.local file.");
     }
-
-    // --- STEP 1: UPLOAD THE IMAGE ---
+    
+    // ... (Image upload and Campaign creation code) ...
     const base64Data = formData.campaignDetail.image.split(',')[1];
     if (!base64Data) throw new Error("Invalid image data received.");
     const imageBuffer = Buffer.from(base64Data, 'base64');
@@ -46,7 +39,6 @@ export async function POST(request: Request) {
     if (!imageHash) throw new Error("Image hash not found in API response.");
     console.log("Step 1/5: Image uploaded successfully. Hash:", imageHash);
 
-    // --- STEP 2: CREATE THE CAMPAIGN ---
     const campaignPayload = {
       name: formData.campaignDetail.name,
       objective: formData.campaignDetail.goal,
@@ -64,8 +56,14 @@ export async function POST(request: Request) {
     const campaignId = campaignData.id;
     console.log("Step 2/5: Campaign created successfully. ID:", campaignId);
 
-    // --- STEP 3: CREATE THE AD SET ---
-    const adSetPayload = {
+    // --- Create Ad Set using LATITUDE and LONGITUDE ---
+    const genderMap: { [key: string]: number[] } = {
+      male: [1],
+      female: [2],
+    };
+    const genders = genderMap[formData.targetAudience.gender] || [];
+
+    const adSetPayload: any = {
       name: `${formData.campaignDetail.name} Ad Set`,
       campaign_id: campaignId,
       status: "PAUSED",
@@ -76,27 +74,45 @@ export async function POST(request: Request) {
       targeting: {
         geo_locations: {
           custom_locations: formData.targetAudience.locations.map(loc => ({
-            address_string: loc.address,
+            latitude: loc.lat,
+            longitude: loc.lng,
             radius: formData.targetAudience.locationRange,
             distance_unit: 'kilometer'
           }))
         },
         age_min: formData.targetAudience.minAge,
         age_max: formData.targetAudience.maxAge,
+        ...(genders.length > 0 && { genders }),
       },
       access_token: accessToken,
     };
+
+    if (formData.budget.startDate) {
+        const now = new Date();
+        const userStartDate = new Date(formData.budget.startDate);
+        const startTime = new Date(Math.max(userStartDate.getTime(), now.getTime() + 10 * 60 * 1000));
+        adSetPayload.start_time = startTime.toISOString();
+    }
+    if (formData.budget.endDate) {
+        const userEndDate = new Date(formData.budget.endDate);
+        userEndDate.setHours(23, 59, 59, 999);
+        adSetPayload.end_time = userEndDate.toISOString();
+    }
+
     const adSetResponse = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/adsets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(adSetPayload),
     });
     const adSetData = await adSetResponse.json();
-    if (!adSetData.id) throw new Error(`API Error (Ad Set Creation): ${adSetData.error.message}`);
+    if (!adSetData.id) {
+        const fbError = adSetData.error ? JSON.stringify(adSetData.error, null, 2) : "Unknown Facebook Error";
+        throw new Error(`API Error (Ad Set Creation): ${fbError}`);
+    }
     const adSetId = adSetData.id;
     console.log("Step 3/5: Ad Set created successfully. ID:", adSetId);
-
-    // --- STEP 4: CREATE THE AD CREATIVE ---
+    
+    // ... (Rest of the file for ad creative and ad creation) ...
     const adCreativePayload = {
       name: `${formData.campaignDetail.name} Creative`,
       object_story_spec: {
@@ -116,11 +132,10 @@ export async function POST(request: Request) {
         body: JSON.stringify(adCreativePayload),
     });
     const adCreativeData = await adCreativeResponse.json();
-    if (!adCreativeData.id) throw new Error(`API Error (Ad Creative Creation): ${adCreativeData.error.message}`);
+    if (!adCreativeData.id) throw new Error(`API Error (Ad Creative Creation): ${JSON.stringify(adCreativeData.error, null, 2)}`);
     const adCreativeId = adCreativeData.id;
     console.log("Step 4/5: Ad Creative created successfully. ID:", adCreativeId);
 
-    // --- STEP 5: CREATE THE AD ---
     const adPayload = {
       name: `${formData.campaignDetail.name} Ad`,
       adset_id: adSetId,
@@ -134,11 +149,11 @@ export async function POST(request: Request) {
         body: JSON.stringify(adPayload),
     });
     const adData = await adResponse.json();
-    if (!adData.id) throw new Error(`API Error (Ad Creation): ${adData.error.message}`);
+    if (!adData.id) throw new Error(`API Error (Ad Creation): ${JSON.stringify(adData.error, null, 2)}`);
     const adId = adData.id;
     console.log("Step 5/5: Final Ad created successfully. ID:", adId);
 
-    return NextResponse.json({ message: "Campaign created successfully!", adId: adId }, { status: 200 });
+    return NextResponse.json({ message: "Campaign created successfully!", adId: adId, campaignId: campaignId }, { status: 200 });
 
   } catch (error) {
     let errorMessage = "An unknown error occurred";

@@ -10,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import ImageUploader from "../ui/ImageUploader";
 import { CampaignFormData } from "../AdManager";
 
-// UPDATED: The props for pages and loading state have been removed.
 interface CampaignDetailStepProps {
   formData: CampaignFormData;
   setFormData: React.Dispatch<React.SetStateAction<CampaignFormData>>;
@@ -48,12 +47,8 @@ const goals = [
     title: "Engagement",
     description: "Get more messages, video views, post engagements, or Page likes.",
   },
-  {
-    id: "goal-app-promotion",
-    value: "OUTCOME_APP_PROMOTION",
-    title: "App Promotion",
-    description: "Find new people to install your app and continue using it.",
-  },
+  // --- THIS IS THE FIX ---
+  // The "App Promotion" goal has been removed from this array.
 ];
 
 const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFormData }) => {
@@ -69,8 +64,6 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300">
-      {/* The Facebook Page dropdown has been removed from this section */}
-
       <div className="space-y-2">
         <Label htmlFor="ad-image" className="font-semibold">Upload Image*</Label>
         <ImageUploader onFileChange={(file) => handleDetailChange("image", file)} />

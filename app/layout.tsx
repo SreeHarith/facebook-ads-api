@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script"; // <-- Import Script
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,11 +23,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* Load Google Maps JS with 'places' library globally */}
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`}
+          strategy="beforeInteractive"
+        />
         {children}
       </body>
     </html>

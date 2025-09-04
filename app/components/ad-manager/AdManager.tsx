@@ -33,12 +33,10 @@ export interface CampaignFormData {
 
 export type { Location };
 
-// --- CHANGE 1: Define an interface for the component's props ---
 interface AdManagerProps {
   onSuccess: () => void;
 }
 
-// Helper function to convert a File to a Base64 string
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -50,7 +48,6 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 const TOTAL_STEPS = 5;
 
-// --- CHANGE 2: Update the component to accept the 'onSuccess' prop ---
 const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
   const router = useRouter();
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -109,10 +106,12 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "An unknown API error occurred");
 
-      addCampaign(formData);
+      // --- THIS IS THE FIX ---
+      // Pass the campaignId from the result to your store
+      addCampaign(formData, result.campaignId);
+      
       setIsSubmitted(true);
       alert(result.message || "Campaign Submitted Successfully!");
-      // --- CHANGE 3: Call the onSuccess function after everything succeeds ---
       onSuccess();
 
     } catch (error) {
