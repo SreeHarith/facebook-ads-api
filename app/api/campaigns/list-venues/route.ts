@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { getFirestore, collection, getDocs, query, orderBy } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDlF31murWCjcplsLyDsAeXBnPF3v2j24A",
@@ -21,7 +21,7 @@ export async function GET() {
     const campaignsQuery = query(collection(db, "campaigns"), orderBy("createdAt", "desc"));
     const campaignSnapshots = await getDocs(campaignsQuery);
 
-    let allPromotions = [];
+    const allPromotions = [];
 
     for (const campaignDoc of campaignSnapshots.docs) {
       const campaignData = campaignDoc.data();
@@ -31,26 +31,19 @@ export async function GET() {
 
       for (const adSetDoc of adSetSnapshots.docs) {
         const adSetData = adSetDoc.data();
-        let latestAdData: any = {}; // Default empty object
-
-        // --- THIS IS THE FIX ---
-        // Now, we look inside the 'ads' subcollection for each ad set
+        
+        // --- THIS IS THE NEW LOGIC ---
+        // Get the 'ads' subcollection and count the documents within it
         const adsRef = collection(adSetDoc.ref, "ads");
-        const latestAdQuery = query(adsRef, orderBy("createdAt", "desc"), limit(1));
-        const latestAdSnapshot = await getDocs(latestAdQuery);
-
-        if (!latestAdSnapshot.empty) {
-          // If an ad exists, get its data (status, type, etc.)
-          latestAdData = latestAdSnapshot.docs[0].data();
-        }
+        const adsSnapshot = await getDocs(adsRef);
         
         allPromotions.push({
           campaignId: campaignDoc.id,
           campaignName: campaignData.name,
           adSetId: adSetDoc.id,
           promotionName: adSetData.name,
-          // Merge the ad set data with the latest ad's data
-          ...latestAdData,
+          createdAt: adSetData.createdAt,
+          creativeCount: adsSnapshot.size, // Add the count of ads
         });
       }
     }

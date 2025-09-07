@@ -5,58 +5,52 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FilePlus2, BarChart2, ImagePlus } from "lucide-react";
+import { FilePlus2, Eye } from "lucide-react";
 import AdManager from "@/app/components/ad-manager/AdManager";
 
 export type VenuePromotion = {
   campaignId: string;
   campaignName: string;
   adSetId: string;
-  promotionName: string; // The name of the Ad Set
-  status?: string; // Status is now from the Ad, so it's optional
-  type?: "image" | "video"; // Type is also from the Ad
+  promotionName: string;
   createdAt: string;
+  creativeCount: number; // The API now provides this
 };
 
 const VenueCard = ({ venue }: { venue: VenuePromotion }) => {
   const router = useRouter();
 
-  const handleAddNewAd = () => {
-    router.push(`/?campaignId=${venue.campaignId}&adSetId=${venue.adSetId}`);
+  // This function now navigates to the new details page
+  const handleViewPromotion = () => {
+    router.push(`/promotions/${venue.adSetId}?campaignId=${venue.campaignId}`);
   };
-
-  const handleAddNewAdSet = () => {
+  
+  const handleAddNewPromotion = () => {
+    // This creates a new Ad Set within the same Campaign
     router.push(`/?campaignId=${venue.campaignId}`);
   };
 
   return (
     <div className="bg-white p-4 rounded-lg border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div className="flex-grow">
-        {/* Now displays the 'promotionName' from the Ad Set */}
         <p className="font-bold text-lg">{venue.promotionName}</p>
         <p className="text-sm text-gray-500">
           In Campaign: <span className="font-medium text-gray-700">{venue.campaignName}</span>
         </p>
-        {/* This div will only render if the promotion has at least one ad creative */}
-        {venue.type && venue.status && (
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs font-semibold uppercase text-gray-400">{venue.type}</span>
-            <span className="text-gray-300">|</span>
-            <span className="text-xs font-semibold uppercase text-green-600">{venue.status}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-xs font-semibold uppercase text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+            {venue.creativeCount} {venue.creativeCount === 1 ? 'Creative' : 'Creatives'}
+          </span>
+        </div>
       </div>
       <div className="flex items-center gap-2 self-start sm:self-center">
-        <Button variant="outline" size="sm" onClick={handleAddNewAd}>
-          <ImagePlus className="h-4 w-4 mr-2" />
-          New Creative
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleAddNewAdSet}>
+        <Button variant="outline" size="sm" onClick={handleAddNewPromotion}>
           <FilePlus2 className="h-4 w-4 mr-2" />
           New Promotion
         </Button>
-        <Button variant="ghost" size="icon">
-          <BarChart2 className="h-5 w-5" />
+        <Button size="sm" onClick={handleViewPromotion}>
+          <Eye className="h-4 w-4 mr-2" />
+          Manage Creatives
         </Button>
       </div>
     </div>
