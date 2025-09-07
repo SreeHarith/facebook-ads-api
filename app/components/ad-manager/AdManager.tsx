@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useCampaignStore } from "@/lib/store";
 
 import VerticalStepper from "./VerticalStepper";
 import FormActions from "./ui/FormActions";
@@ -15,7 +14,7 @@ import BudgetSchedulingStep from "./steps/BudgetSchedulingStep";
 import PaymentStep from "./steps/PaymentStep";
 import { Location } from "./ui/LocationSearchInput";
 
-// The data structure for the form
+// CampaignFormData interface remains the same
 export interface CampaignFormData {
   channel: { facebook: boolean; instagram: boolean };
   type: "image" | "video";
@@ -30,7 +29,6 @@ export interface CampaignFormData {
   budget: { startDate?: Date; endDate?: Date; minimumBudget: number; totalBudget: string };
   payment: { selectedCard: string };
 }
-
 export type { Location };
 
 interface AdManagerProps {
@@ -50,9 +48,18 @@ const TOTAL_STEPS = 5;
 
 const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [existingCampaignId, setExistingCampaignId] = useState<string | null>(null);
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const addCampaign = useCampaignStore((state) => state.addCampaign);
+
+  useEffect(() => {
+    const campaignId = searchParams.get("campaignId");
+    if (campaignId) {
+      setExistingCampaignId(campaignId);
+    }
+  }, [searchParams]);
 
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<CampaignFormData>({
@@ -72,10 +79,7 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
       const dayCount = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) + 1;
       const newTotal = dayCount * minimumBudget;
       if (newTotal.toString() !== formData.budget.totalBudget) {
-        setFormData(prev => ({
-          ...prev,
-          budget: { ...prev.budget, totalBudget: newTotal.toString() }
-        }));
+        setFormData(prev => ({ ...prev, budget: { ...prev.budget, totalBudget: newTotal.toString() } }));
       }
     }
   }, [formData.budget]);
@@ -92,10 +96,14 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
     
     try {
       const imageBase64 = await fileToBase64(formData.campaignDetail.image);
-      const payload = {
+      const payload: any = {
         ...formData,
         campaignDetail: { ...formData.campaignDetail, image: imageBase64 },
       };
+
+      if (existingCampaignId) {
+        payload.existingCampaignId = existingCampaignId;
+      }
 
       const response = await fetch('/api/campaigns', {
         method: 'POST',
@@ -105,10 +113,6 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "An unknown API error occurred");
-
-      // --- THIS IS THE FIX ---
-      // Pass the campaignId from the result to your store
-      addCampaign(formData, result.campaignId);
       
       setIsSubmitted(true);
       alert(result.message || "Campaign Submitted Successfully!");
@@ -126,9 +130,11 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
   };
 
   const renderStepContent = () => {
+    const isExisting = !!existingCampaignId;
     switch (step) {
       case 1: return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
-      case 2: return <CampaignDetailStep formData={formData} setFormData={setFormData} />;
+      // --- THIS IS THE FIX: Pass the 'isExisting' flag down to the component ---
+      case 2: return <CampaignDetailStep formData={formData} setFormData={setFormData} isExistingCampaign={isExisting} />;
       case 3: return <TargetAudienceStep formData={formData} setFormData={setFormData} />;
       case 4: return <BudgetSchedulingStep formData={formData} setFormData={setFormData} />;
       case 5: return <PaymentStep formData={formData} setFormData={setFormData} />;
@@ -140,7 +146,9 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
     <>
       <Card className="w-full max-w-5xl shadow-lg">
         <CardHeader>
-          <CardTitle>Ad manager</CardTitle>
+          <CardTitle>
+            {existingCampaignId ? `Create New Ad Set` : "Create New Campaign"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row gap-8 md:gap-12">
           <div className="w-full md:w-1/3 lg:w-1/4">
@@ -161,7 +169,6 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
           />
         </CardFooter>
       </Card>
-
       {isSubmitted && (
         <div className="w-full max-w-5xl flex justify-center mt-6">
           <Button onClick={() => router.push('/campaigns')} size="lg">
@@ -174,3 +181,4 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
 };
 
 export default AdManager;
+

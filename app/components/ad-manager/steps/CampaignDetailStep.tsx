@@ -7,51 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import ImageUploader from "../ui/ImageUploader";
+import MediaUploader from "../ui/ImageUploader";
 import { CampaignFormData } from "../AdManager";
+
+const goals = [
+  { id: "goal-traffic", value: "OUTCOME_TRAFFIC", title: "Traffic", description: "Send more people to a destination, such as your website or app." },
+  { id: "goal-awareness", value: "OUTCOME_AWARENESS", title: "Awareness", description: "Show your ads to people who are most likely to remember them." },
+  { id: "goal-leads", value: "OUTCOME_LEADS", title: "Leads", description: "Collect leads for your business or brand." },
+  { id: "goal-sales", value: "OUTCOME_SALES", title: "Sales", description: "Find people likely to purchase your product or service." },
+  { id: "goal-engagement", value: "OUTCOME_ENGAGEMENT", title: "Engagement", description: "Get more messages, video views, post engagements, or Page likes." },
+];
 
 interface CampaignDetailStepProps {
   formData: CampaignFormData;
   setFormData: React.Dispatch<React.SetStateAction<CampaignFormData>>;
+  isExistingCampaign: boolean; // --- 1. ACCEPT THE NEW PROP ---
 }
 
-// Data for the "Goals" radio cards
-const goals = [
-  {
-    id: "goal-traffic",
-    value: "OUTCOME_TRAFFIC",
-    title: "Traffic",
-    description: "Send more people to a destination, such as your website or app.",
-  },
-  {
-    id: "goal-awareness",
-    value: "OUTCOME_AWARENESS",
-    title: "Awareness",
-    description: "Show your ads to people who are most likely to remember them.",
-  },
-  {
-    id: "goal-leads",
-    value: "OUTCOME_LEADS",
-    title: "Leads",
-    description: "Collect leads for your business or brand.",
-  },
-  {
-    id: "goal-sales",
-    value: "OUTCOME_SALES",
-    title: "Sales",
-    description: "Find people likely to purchase your product or service.",
-  },
-  {
-    id: "goal-engagement",
-    value: "OUTCOME_ENGAGEMENT",
-    title: "Engagement",
-    description: "Get more messages, video views, post engagements, or Page likes.",
-  },
-  // --- THIS IS THE FIX ---
-  // The "App Promotion" goal has been removed from this array.
-];
-
-const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFormData }) => {
+const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFormData, isExistingCampaign }) => {
   const handleDetailChange = (field: keyof CampaignFormData["campaignDetail"], value: string | File | null) => {
     setFormData((prev: CampaignFormData) => ({
       ...prev,
@@ -62,28 +35,36 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
     }));
   };
 
+  // --- 2. DEFINE DYNAMIC TEXT BASED ON THE PROP ---
+  const nameLabel = isExistingCampaign ? "Ad Set Name*" : "Campaign Name*";
+  const namePlaceholder = isExistingCampaign ? "e.g., Summer Sale Ad Set" : "e.g., Summer Sale Campaign";
+  const mediaLabel = `Upload ${formData.type}*`;
+
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300">
       <div className="space-y-2">
-        <Label htmlFor="ad-image" className="font-semibold">Upload Image*</Label>
-        <ImageUploader onFileChange={(file) => handleDetailChange("image", file)} />
+        <Label htmlFor="ad-media" className="font-semibold capitalize">{mediaLabel}</Label>
+        <MediaUploader
+          mediaType={formData.type}
+          onFileChange={(file) => handleDetailChange("image", file)}
+        />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ad-name" className="font-semibold">Name*</Label>
+        <Label htmlFor="ad-name" className="font-semibold">{nameLabel}</Label>
         <Input
           id="ad-name"
-          placeholder="e.g., Summer Sale Campaign"
+          placeholder={namePlaceholder}
           value={formData.campaignDetail.name}
           onChange={(e) => handleDetailChange("name", e.target.value)}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ad-description" className="font-semibold">Description*</Label>
+        <Label htmlFor="ad-description" className="font-semibold">Ad Description*</Label>
         <Textarea
           id="ad-description"
-          placeholder="Add a description for your ad..."
+          placeholder="Add a description for your ad creative..."
           value={formData.campaignDetail.description}
           onChange={(e) => handleDetailChange("description", e.target.value)}
         />
@@ -91,16 +72,25 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
 
       <div className="space-y-4">
         <h3 className="font-semibold text-gray-800">Goals</h3>
+        {/* --- 3. ADD HELPER TEXT AND DISABLE THE GOALS SECTION IF IT'S AN EXISTING CAMPAIGN --- */}
+        {isExistingCampaign && (
+          <p className="text-sm text-gray-500 bg-slate-50 p-3 rounded-md">
+            The marketing objective is inherited from the parent campaign and cannot be changed.
+          </p>
+        )}
         <RadioGroup
           value={formData.campaignDetail.goal}
           onValueChange={(value) => handleDetailChange("goal", value)}
+          disabled={isExistingCampaign}
         >
           <Card>
             {goals.map((goal, index) => (
               <React.Fragment key={goal.id}>
                 <Label
                   htmlFor={goal.id}
-                  className="flex items-start space-x-4 p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                  className={`flex items-start space-x-4 p-4 transition-colors ${
+                    isExistingCampaign ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-50'
+                  }`}
                 >
                   <RadioGroupItem value={goal.value} id={goal.id} className="mt-1" />
                   <div className="space-y-1">
@@ -119,3 +109,4 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
 };
 
 export default CampaignDetailStep;
+

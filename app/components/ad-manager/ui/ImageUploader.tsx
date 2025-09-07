@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, Accept } from "react-dropzone";
 import { UploadCloud, X } from "lucide-react";
 
 // Props definition for type safety
-interface ImageUploaderProps {
+interface MediaUploaderProps {
   onFileChange: (file: File | null) => void;
+  mediaType: "image" | "video";
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ onFileChange }) => {
+const MediaUploader: React.FC<MediaUploaderProps> = ({ onFileChange, mediaType }) => {
   const [preview, setPreview] = useState<string | null>(null);
 
-  // Memoize the onDrop function to prevent re-renders
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
@@ -24,32 +24,41 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onFileChange }) => {
     [onFileChange]
   );
 
+  // --- THIS IS THE FIX ---
+  // We define the 'Accept' object cleanly outside of the hook
+  // to avoid the complex type inference issue.
+  const acceptConfig: Accept = mediaType === 'image'
+    ? { "image/*": [".jpeg", ".png", ".jpg", ".gif"] }
+    : { "video/*": [".mp4", ".mov", ".avi"] };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/*": [".jpeg", ".png", ".jpg", ".gif"] },
+    accept: acceptConfig, // Use the correctly typed object here
     multiple: false,
   });
 
-  // Function to remove the selected image
-  const removeImage = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering the dropzone click
+  const removeMedia = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setPreview(null);
     onFileChange(null);
-    // Revoke the object URL to free up memory
     if (preview) {
       URL.revokeObjectURL(preview);
     }
   };
 
-  // If a preview exists, show the image and a remove button
+  // If a preview exists, show the correct preview (image or video)
   if (preview) {
     return (
       <div className="relative w-full h-48 rounded-lg overflow-hidden group">
-        <img src={preview} alt="Ad creative preview" className="w-full h-full object-cover" />
+        {mediaType === 'image' ? (
+          <img src={preview} alt="Ad creative preview" className="w-full h-full object-cover" />
+        ) : (
+          <video src={preview} controls className="w-full h-full object-cover" />
+        )}
         <button
-          onClick={removeImage}
+          onClick={removeMedia}
           className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Remove image"
+          aria-label="Remove media"
         >
           <X size={18} />
         </button>
@@ -70,10 +79,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onFileChange }) => {
       <input {...getInputProps()} />
       <UploadCloud className="text-gray-400 mb-2" size={32} />
       <p className="text-gray-500 text-sm">
-        Drag and drop image or <span className="font-semibold text-violet-600">browse</span>
+        Drag and drop {mediaType} or <span className="font-semibold text-violet-600">browse</span>
       </p>
     </div>
   );
 };
 
-export default ImageUploader;
+export default MediaUploader;
+
