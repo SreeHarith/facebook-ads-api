@@ -14,7 +14,6 @@ import BudgetSchedulingStep from "./steps/BudgetSchedulingStep";
 import PaymentStep from "./steps/PaymentStep";
 import { Location } from "./ui/LocationSearchInput";
 
-// CampaignFormData interface remains the same
 export interface CampaignFormData {
   channel: { facebook: boolean; instagram: boolean };
   type: "image" | "video";
@@ -50,15 +49,16 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [existingCampaignId, setExistingCampaignId] = useState<string | null>(null);
+  const [existingAdSetId, setExistingAdSetId] = useState<string | null>(null);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
   useEffect(() => {
     const campaignId = searchParams.get("campaignId");
-    if (campaignId) {
-      setExistingCampaignId(campaignId);
-    }
+    const adSetId = searchParams.get("adSetId");
+    setExistingCampaignId(campaignId);
+    setExistingAdSetId(adSetId);
   }, [searchParams]);
 
   const [step, setStep] = useState(1);
@@ -96,14 +96,14 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
     
     try {
       const imageBase64 = await fileToBase64(formData.campaignDetail.image);
-      const payload: any = {
-        ...formData,
-        campaignDetail: { ...formData.campaignDetail, image: imageBase64 },
+      const payload = {
+        formData: {
+          ...formData,
+          campaignDetail: { ...formData.campaignDetail, image: imageBase64 },
+        },
+        existingCampaignId: existingCampaignId || undefined,
+        existingAdSetId: existingAdSetId || undefined,
       };
-
-      if (existingCampaignId) {
-        payload.existingCampaignId = existingCampaignId;
-      }
 
       const response = await fetch('/api/campaigns', {
         method: 'POST',
@@ -119,22 +119,21 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
       onSuccess();
 
     } catch (error) {
-      let errorMessage = "An unknown error occurred";
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Determine the current workflow
+  const isNewCreativeOnly = !!existingAdSetId;
+  const isExistingCampaign = !!existingCampaignId;
+
   const renderStepContent = () => {
-    const isExisting = !!existingCampaignId;
     switch (step) {
       case 1: return <ChannelTypeStep formData={formData} setFormData={setFormData} />;
-      // --- THIS IS THE FIX: Pass the 'isExisting' flag down to the component ---
-      case 2: return <CampaignDetailStep formData={formData} setFormData={setFormData} isExistingCampaign={isExisting} />;
+      case 2: return <CampaignDetailStep formData={formData} setFormData={setFormData} isExistingCampaign={isExistingCampaign} />;
       case 3: return <TargetAudienceStep formData={formData} setFormData={setFormData} />;
       case 4: return <BudgetSchedulingStep formData={formData} setFormData={setFormData} />;
       case 5: return <PaymentStep formData={formData} setFormData={setFormData} />;
@@ -142,17 +141,21 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
     }
   };
 
+  const getTitle = () => {
+    if (isNewCreativeOnly) return "Create New Ad Creative";
+    if (isExistingCampaign) return "Create New Promotion";
+    return "Create New Campaign";
+  };
+
   return (
     <>
       <Card className="w-full max-w-5xl shadow-lg">
         <CardHeader>
-          <CardTitle>
-            {existingCampaignId ? `Create New Ad Set` : "Create New Campaign"}
-          </CardTitle>
+          <CardTitle>{getTitle()}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row gap-8 md:gap-12">
           <div className="w-full md:w-1/3 lg:w-1/4">
-            <VerticalStepper currentStep={step} setStep={setStep} />
+            <VerticalStepper currentStep={step} setStep={setStep} isNewCreativeOnly={isNewCreativeOnly} />
           </div>
           <div className="flex-1 min-h-[450px]">
             {renderStepContent()}
@@ -166,13 +169,14 @@ const AdManager: React.FC<AdManagerProps> = ({ onSuccess }) => {
             onNext={handleNext}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
+            isNewCreativeOnly={isNewCreativeOnly}
           />
         </CardFooter>
       </Card>
       {isSubmitted && (
         <div className="w-full max-w-5xl flex justify-center mt-6">
-          <Button onClick={() => router.push('/campaigns')} size="lg">
-            View All Campaigns
+          <Button onClick={() => router.push('/?tab=venues')} size="lg">
+            View All Promotions
           </Button>
         </div>
       )}

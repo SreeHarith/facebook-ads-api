@@ -21,7 +21,7 @@ const goals = [
 interface CampaignDetailStepProps {
   formData: CampaignFormData;
   setFormData: React.Dispatch<React.SetStateAction<CampaignFormData>>;
-  isExistingCampaign: boolean; // --- 1. ACCEPT THE NEW PROP ---
+  isExistingCampaign?: boolean; // This prop tells the component which mode it's in
 }
 
 const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFormData, isExistingCampaign }) => {
@@ -35,15 +35,10 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
     }));
   };
 
-  // --- 2. DEFINE DYNAMIC TEXT BASED ON THE PROP ---
-  const nameLabel = isExistingCampaign ? "Ad Set Name*" : "Campaign Name*";
-  const namePlaceholder = isExistingCampaign ? "e.g., Summer Sale Ad Set" : "e.g., Summer Sale Campaign";
-  const mediaLabel = `Upload ${formData.type}*`;
-
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300">
       <div className="space-y-2">
-        <Label htmlFor="ad-media" className="font-semibold capitalize">{mediaLabel}</Label>
+        <Label htmlFor="ad-media" className="font-semibold capitalize">Upload {formData.type}*</Label>
         <MediaUploader
           mediaType={formData.type}
           onFileChange={(file) => handleDetailChange("image", file)}
@@ -51,46 +46,43 @@ const CampaignDetailStep: React.FC<CampaignDetailStepProps> = ({ formData, setFo
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ad-name" className="font-semibold">{nameLabel}</Label>
-        <Input
-          id="ad-name"
-          placeholder={namePlaceholder}
-          value={formData.campaignDetail.name}
-          onChange={(e) => handleDetailChange("name", e.target.value)}
+        {/* --- DYNAMIC LABEL --- */}
+        <Label htmlFor="ad-name" className="font-semibold">{isExistingCampaign ? "Promotion Name*" : "Campaign Name*"}</Label>
+        <Input 
+          id="ad-name" 
+          placeholder={isExistingCampaign ? "e.g., Summer Video Ad" : "e.g., Summer Sale Campaign"} 
+          value={formData.campaignDetail.name} 
+          onChange={(e) => handleDetailChange("name", e.target.value)} 
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ad-description" className="font-semibold">Ad Description*</Label>
-        <Textarea
-          id="ad-description"
-          placeholder="Add a description for your ad creative..."
-          value={formData.campaignDetail.description}
-          onChange={(e) => handleDetailChange("description", e.target.value)}
+        <Label htmlFor="ad-description" className="font-semibold">Description / Ad Text*</Label>
+        <Textarea 
+          id="ad-description" 
+          placeholder="Add a description for your ad..." 
+          value={formData.campaignDetail.description} 
+          onChange={(e) => handleDetailChange("description", e.target.value)} 
         />
       </div>
 
       <div className="space-y-4">
-        <h3 className="font-semibold text-gray-800">Goals</h3>
-        {/* --- 3. ADD HELPER TEXT AND DISABLE THE GOALS SECTION IF IT'S AN EXISTING CAMPAIGN --- */}
+        <h3 className="font-semibold text-gray-800">Goal</h3>
         {isExistingCampaign && (
-          <p className="text-sm text-gray-500 bg-slate-50 p-3 rounded-md">
-            The marketing objective is inherited from the parent campaign and cannot be changed.
-          </p>
+          <p className="text-sm text-gray-500 -mt-2">The campaign goal is already set and cannot be changed.</p>
         )}
-        <RadioGroup
-          value={formData.campaignDetail.goal}
+        <RadioGroup 
+          value={formData.campaignDetail.goal} 
           onValueChange={(value) => handleDetailChange("goal", value)}
+          // --- GOALS ARE DISABLED IF IT'S AN EXISTING CAMPAIGN ---
           disabled={isExistingCampaign}
         >
           <Card>
             {goals.map((goal, index) => (
               <React.Fragment key={goal.id}>
-                <Label
-                  htmlFor={goal.id}
-                  className={`flex items-start space-x-4 p-4 transition-colors ${
-                    isExistingCampaign ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-50'
-                  }`}
+                <Label 
+                  htmlFor={goal.id} 
+                  className={`flex items-start space-x-4 p-4 transition-colors ${isExistingCampaign ? 'cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:bg-slate-50'}`}
                 >
                   <RadioGroupItem value={goal.value} id={goal.id} className="mt-1" />
                   <div className="space-y-1">
