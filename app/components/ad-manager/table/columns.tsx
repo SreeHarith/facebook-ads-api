@@ -1,10 +1,9 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, Row } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-import { useRouter } from "next/navigation"; // --- 1. IMPORT THE ROUTER ---
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation"; // Import useRouter here
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,12 +19,13 @@ export type Campaign = {
   facebookCampaignId: string;
   adName: string;
   goals: string;
-  type: "image" | "video";
-  platform: "Facebook" | "Instagram" | "Both";
-  startDate: string;
-  endDate: string;
-  budget: number;
-  status: "Completed" | "In Progress" | "Paused";
+  // These fields are now optional as they might not apply to every row
+  type?: "image" | "video";
+  platform?: "Facebook" | "Instagram" | "Both";
+  startDate?: string;
+  endDate?: string;
+  budget?: number;
+  status?: "Completed" | "In Progress" | "Paused";
 };
 
 // Helper to format currency
@@ -37,8 +37,43 @@ const formatCurrency = (amount: number | undefined) => {
   }).format(amount);
 };
 
+// --- THIS IS THE FIX ---
+// Create a new component specifically for the actions cell
+const CampaignActionsCell = ({ row }: { row: Row<Campaign> }) => {
+  const router = useRouter(); // Use the hook safely inside a React component
+  const campaign = row.original;
+
+  const handleAddNewAdSet = () => {
+    router.push(`/?campaignId=${campaign.facebookCampaignId}`);
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        {/* Use the onClick handler for programmatic navigation */}
+        <DropdownMenuItem onClick={handleAddNewAdSet}>
+          Add New Ad Set
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/campaigns/${campaign.facebookCampaignId}`}>
+            View Statistics
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem>Edit</DropdownMenuItem>
+        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 export const columns: ColumnDef<Campaign>[] = [
-  // ... (all your existing columns) ...
   {
     accessorKey: "adName",
     header: "Campaign",
@@ -87,39 +122,8 @@ export const columns: ColumnDef<Campaign>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const campaign = row.original;
-      const router = useRouter(); // --- 2. INITIALIZE THE ROUTER ---
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            
-            {/* --- 3. REPLACE THE LINK WITH AN ONCLICK ITEM --- */}
-            <DropdownMenuItem
-              onClick={() => router.push(`/?campaignId=${campaign.facebookCampaignId}`)}
-            >
-              Add New Ad Set
-            </DropdownMenuItem>
-
-            <DropdownMenuItem asChild>
-              <Link href={`/campaigns/${campaign.facebookCampaignId}`}>
-                View Statistics
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
+    // Use the new component for rendering the cell
+    cell: ({ row }) => <CampaignActionsCell row={row} />,
   },
 ];
 
